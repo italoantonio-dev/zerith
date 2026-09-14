@@ -6,7 +6,6 @@ import {
   CircleDollarSign,
   Gauge,
   LogOut,
-  Settings2,
   Sun,
   Wrench,
 } from "lucide-react";
