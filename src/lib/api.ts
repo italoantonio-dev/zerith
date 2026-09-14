@@ -97,6 +97,7 @@ export const zerithApi = {
   },
   dashboard: () => apiFetch<DashboardSummary>("/dashboard/summary"),
   vehicles: () => apiFetch<Vehicle[]>("/vehicles"),
+  vehicle: (vehicleId: string) => apiFetch<Vehicle>("/vehicles/" + encodeURIComponent(vehicleId)),
   alerts: () => apiFetch<Alert[]>("/alerts"),
   telemetry: (vehicleId: string, limit = 14) =>
     apiFetch<Array<{
