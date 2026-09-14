@@ -83,7 +83,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
           className="relative hidden h-10 w-10 rounded-full text-slate-300 hover:bg-white/10 hover:text-white sm:inline-flex"
           aria-label="Notificações"
         >
-          <Bell className="h-4.5 w-4.5" />
+          <Bell className="h-4 w-4" />
           <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#ff5c62]" />
         </Button>
 
