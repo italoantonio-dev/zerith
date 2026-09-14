@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useAuth } from "@/context/AuthContext";
 
 const loginSchema = z.object({
-  email: z.string().email({ message: "Email inválido" }),
+  email: z.string().trim().toLowerCase().email({ message: "Email inválido" }),
   password: z.string().min(6, { message: "A senha deve ter pelo menos 6 caracteres" }),
 });
 
@@ -69,8 +69,11 @@ const Login = () => {
                       <div className="relative">
                         <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                         <FormControl>
-                          <Input 
-                            placeholder="seu.email@exemplo.com" 
+                          <Input
+                            type="email"
+                            inputMode="email"
+                            autoComplete="email"
+                            placeholder="seu.email@exemplo.com"
                             className="pl-10" 
                             {...field} 
                           />
@@ -92,6 +95,7 @@ const Login = () => {
                         <FormControl>
                           <Input
                             type={showPassword ? "text" : "password"}
+                            autoComplete="current-password"
                             className="pl-10 pr-10"
                             style={{ paddingRight: 44 }}
                             {...field}
