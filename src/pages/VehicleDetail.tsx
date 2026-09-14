@@ -1,327 +1,164 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronLeft, Cpu, Radio } from "lucide-react";
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, AlertTriangle } from "lucide-react";
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  Legend 
-} from "recharts";
-import { 
-  getVehicleById, 
-  getAlertsByVehicleId, 
-  formatDate, 
-  riskColors,
-  alertStatusColors,
-  sensorData,
-  simulateNewReading,
-  simulateFailure
-} from "@/data/mockData";
-import { toast } from "@/hooks/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { alertStatusColors, riskColors, statusColors } from "@/data/mockData";
+import { zerithApi } from "@/lib/api";
+
+const formatDate = (value: string | null) =>
+  value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value)) : "Sem registro";
 
 const VehicleDetail = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [readings, setReadings] = useState(
-    sensorData[id as keyof typeof sensorData] || []
-  );
-  const [simulationComponent, setSimulationComponent] = useState("Motor");
-  
-  const vehicle = getVehicleById(id || "");
-  const alerts = getAlertsByVehicleId(id || "");
-  
-  if (!vehicle) {
+
+  const vehicleQuery = useQuery({
+    queryKey: ["vehicle", id],
+    queryFn: () => zerithApi.vehicle(id),
+    enabled: Boolean(id),
+    refetchInterval: 15_000,
+  });
+  const telemetryQuery = useQuery({
+    queryKey: ["telemetry", id],
+    queryFn: () => zerithApi.telemetry(id, 14),
+    enabled: Boolean(id),
+    refetchInterval: 15_000,
+  });
+  const alertsQuery = useQuery({
+    queryKey: ["alerts"],
+    queryFn: zerithApi.alerts,
+    refetchInterval: 15_000,
+  });
+
+  if (vehicleQuery.isLoading) {
+    return <DashboardLayout><div className="p-8">Carregando veículo...</div></DashboardLayout>;
+  }
+  if (!vehicleQuery.data || vehicleQuery.error) {
     return (
       <DashboardLayout>
-        <div className="flex flex-col items-center justify-center h-full">
-          <h2 className="text-2xl font-bold mb-4">Veículo não encontrado</h2>
-          <Button onClick={() => navigate("/veiculos")}>Voltar para lista de veículos</Button>
+        <div className="space-y-4 p-8">
+          <h2 className="text-2xl font-bold">Veículo não encontrado</h2>
+          <Button onClick={() => navigate("/veiculos")}>Voltar para a frota</Button>
         </div>
       </DashboardLayout>
     );
   }
 
-  const handleNewReading = () => {
-    if (!id) return;
-    
-    const newReading = simulateNewReading(id);
-    if (newReading) {
-      setReadings((prev) => {
-        const updated = [...prev, newReading];
-        // Keep only the latest 14 readings
-        return updated.slice(Math.max(0, updated.length - 14));
-      });
-      
-      toast({
-        title: "Nova leitura registrada",
-        description: `Temperatura: ${newReading.temperature}°C, Vibração: ${newReading.vibration}g, Tensão: ${newReading.voltage}V`,
-      });
-    }
-  };
-
-  const handleSimulateFailure = () => {
-    if (!id) return;
-    
-    const newAlert = simulateFailure(id, simulationComponent);
-    if (newAlert) {
-      toast({
-        title: "Alerta simulado criado",
-        description: `Novo alerta de ${simulationComponent} criado com nível de risco ${newAlert.riskLevel}`,
-        variant: "destructive",
-      });
-    }
-  };
+  const vehicle = vehicleQuery.data;
+  const readings = telemetryQuery.data ?? [];
+  const vehicleAlerts = (alertsQuery.data ?? []).filter((alert) => alert.vehicleId === id);
 
   return (
     <DashboardLayout>
       <div className="flex flex-col space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-          <div className="flex items-center space-x-2">
-            <Button
-              size="sm"
-              onClick={() => navigate("/veiculos")}
-              className="bg-white text-[#1D3557] border border-[#1D3557] shadow-sm hover:bg-[#1D3557] hover:text-white focus:ring-2 focus:ring-[#1D3557] focus:ring-offset-2"
-              style={{ minWidth: 90 }}
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Voltar
-            </Button>
-            <h2 className="text-2xl font-bold" style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>Detalhes do Veículo: {vehicle.modelo}</h2>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => navigate("/veiculos")}>
+            <ChevronLeft className="mr-1 h-4 w-4" /> Voltar
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold text-[#1A1333]">{vehicle.modelo}</h2>
+            <p className="text-sm text-muted-foreground">{vehicle.id} · {vehicle.placa}</p>
           </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
-            <CardHeader>
-              <CardTitle style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>Informações do Veículo</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">ID do Veículo</p>
-                  <p>{vehicle.id}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Placa</p>
-                  <p>{vehicle.placa}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Modelo</p>
-                  <p>{vehicle.modelo}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Ano</p>
-                  <p>{vehicle.ano}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Tipo</p>
-                  <p>{vehicle.tipo}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Quilometragem</p>
-                  <p>{vehicle.km.toLocaleString()} km</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Motorista</p>
-                  <p>{vehicle.motorista}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium mt-1 ${
-                    vehicle.status === "normal" ? "bg-green-100 text-green-800" :
-                    vehicle.status === "alerta" ? "bg-yellow-100 text-yellow-800" :
-                    "bg-red-100 text-red-800"
-                  }`}>
-                    {vehicle.status === "normal" ? "Normal" : 
-                     vehicle.status === "alerta" ? "Alerta" : "Crítico"}
-                  </span>
-                </div>
+            <CardHeader><CardTitle>Informações do veículo</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4">
+              <Info label="Modelo" value={vehicle.modelo} />
+              <Info label="Ano" value={vehicle.ano ?? "-"} />
+              <Info label="Tipo" value={vehicle.tipo} />
+              <Info label="Quilometragem" value={Number(vehicle.km).toLocaleString("pt-BR") + " km"} />
+              <Info label="Motorista" value={vehicle.motorista ?? "Não atribuído"} />
+              <div>
+                <p className="text-sm text-muted-foreground">Status</p>
+                <span className={"mt-1 inline-flex rounded-full px-2 py-1 text-xs " + statusColors[vehicle.status]}>{vehicle.status}</span>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>Ações</CardTitle>
-                <CardDescription style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>Ferramentas de simulação</CardDescription>
-              </div>
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Cpu className="h-5 w-5" /> Dispositivo</CardTitle>
+              <CardDescription>Vínculo entre o veículo e o hardware de telemetria</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Button 
-                  onClick={handleNewReading} 
-                  className="w-full bg-[#1D3557] text-white shadow-md hover:bg-[#16305c] focus:ring-2 focus:ring-[#1D3557] focus:ring-offset-2">
-                  Simular Nova Leitura de Sensores
-                </Button>
+            <CardContent className="space-y-3">
+              <Info label="Identificador" value={vehicle.deviceId ?? "Não instalado"} />
+              <div className="flex items-center gap-2">
+                <Radio className={"h-4 w-4 " + (vehicle.deviceStatus === "online" ? "text-green-600" : "text-gray-400")} />
+                <span>{vehicle.deviceStatus ?? "offline"}</span>
               </div>
-              
-              <div className="flex flex-col space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Simular falha em componente:</p>
-                <div className="flex space-x-2">
-                  <Select value={simulationComponent} onValueChange={setSimulationComponent}>
-                    <SelectTrigger className="w-full bg-white text-[#1A1333] border border-[#1D3557] placeholder:text-[#888] focus:ring-2 focus:ring-[#1D3557] focus:ring-offset-2 shadow-sm">
-                      <SelectValue placeholder="Selecione um componente" className="text-[#888]" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Motor">Motor</SelectItem>
-                      <SelectItem value="Bateria">Bateria</SelectItem>
-                      <SelectItem value="Alternador">Alternador</SelectItem>
-                      <SelectItem value="Freios">Freios</SelectItem>
-                      <SelectItem value="Transmissão">Transmissão</SelectItem>
-                      <SelectItem value="Sistema de Arrefecimento">Sistema de Arrefecimento</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button 
-                    style={{ background: '#E63946', color: '#fff', boxShadow: '0 2px 8px #E6394640' }}
-                    className="hover:bg-[#b92d3a] focus:ring-2 focus:ring-[#E63946] focus:ring-offset-2"
-                    onClick={handleSimulateFailure}>
-                    Simular Falha
-                  </Button>
-                </div>
-              </div>
+              <Info label="Último contato" value={formatDate(vehicle.deviceLastSeenAt)} />
+              <Info label="Última análise" value={formatDate(vehicle.ultimaAnalise)} />
             </CardContent>
-            <CardFooter className="text-sm text-muted-foreground">
-              Estas ações são apenas para fins de demonstração e não afetam sistemas reais.
-            </CardFooter>
           </Card>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>Leituras dos Sensores</CardTitle>
-            <CardDescription style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>Últimos 14 dias ou medições</CardDescription>
+            <CardTitle>Telemetria recebida</CardTitle>
+            <CardDescription>Temperatura, vibração e tensão — últimas 14 medições</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={readings}
-                  margin={{
-                    top: 5,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="temperature"
-                    name="Temperatura (°C)"
-                    stroke="#1D3557"
-                    strokeWidth={2}
-                    dot={{ r: 2 }}
-                    activeDot={{ r: 5 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="vibration"
-                    name="Vibração (g)"
-                    stroke="#E63946"
-                    strokeWidth={2}
-                    dot={{ r: 2 }}
-                    activeDot={{ r: 5 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="voltage"
-                    name="Tensão (V)"
-                    stroke="#457B9D"
-                    strokeWidth={2}
-                    dot={{ r: 2 }}
-                    activeDot={{ r: 5 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            {readings.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">Aguardando a primeira leitura do ESP32.</div>
+            ) : (
+              <div className="h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={readings}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" hide />
+                    <YAxis />
+                    <Tooltip labelFormatter={(value) => formatDate(String(value))} />
+                    <Legend />
+                    <Line type="monotone" dataKey="temperature" name="Temperatura (°C)" stroke="#4A148C" strokeWidth={2} />
+                    <Line type="monotone" dataKey="vibration" name="Vibração (g)" stroke="#E63946" strokeWidth={2} />
+                    <Line type="monotone" dataKey="voltage" name="Tensão (V)" stroke="#457B9D" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>Histórico de Alertas</CardTitle>
-            <CardDescription style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>Alertas registrados para este veículo</CardDescription>
-          </CardHeader>
+          <CardHeader><CardTitle>Alertas do veículo</CardTitle></CardHeader>
           <CardContent>
-            {alerts.length === 0 ? (
-              <div className="text-center py-6">
-                <p className="text-muted-foreground">Nenhum alerta registrado para este veículo.</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>Componente</TableHead>
-                    <TableHead style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>Nível de Risco</TableHead>
-                    <TableHead style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>Status</TableHead>
-                    <TableHead style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>Data</TableHead>
-                    <TableHead style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>Descrição</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Componente</TableHead><TableHead>Risco</TableHead>
+                  <TableHead>Status</TableHead><TableHead>Data</TableHead><TableHead>Descrição</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {vehicleAlerts.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="py-8 text-center">Nenhum alerta registrado.</TableCell></TableRow>
+                ) : vehicleAlerts.map((alert, index) => (
+                  <TableRow key={alert.id ?? alert.date + index}>
+                    <TableCell>{alert.component}</TableCell>
+                    <TableCell><span className={"rounded-full px-2 py-1 text-xs " + riskColors[alert.riskLevel]}>{alert.riskLevel}</span></TableCell>
+                    <TableCell><span className={"rounded-full px-2 py-1 text-xs " + alertStatusColors[alert.status]}>{alert.status}</span></TableCell>
+                    <TableCell>{formatDate(alert.date)}</TableCell>
+                    <TableCell>{alert.description}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {alerts
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                    .map((alert) => (
-                      <TableRow key={alert.id}>
-                        <TableCell style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>{alert.component}</TableCell>
-                        <TableCell style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>
-                          <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${riskColors[alert.riskLevel as keyof typeof riskColors]}`}>
-                            {alert.riskLevel === "baixo" ? "Baixo" : alert.riskLevel === "medio" ? "Médio" : "Alto"}
-                          </span>
-                        </TableCell>
-                        <TableCell style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>
-                          <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${alertStatusColors[alert.status as keyof typeof alertStatusColors]}`}>
-                            {alert.status === "pendente" ? "Pendente" : 
-                             alert.status === "agendado" ? "Agendado" : "Resolvido"}
-                          </span>
-                        </TableCell>
-                        <TableCell style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>{formatDate(alert.date)}</TableCell>
-                        <TableCell style={{ color: '#1A1333', textShadow: '0 2px 8px #F5F5F599' }}>{alert.description}</TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            )}
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
     </DashboardLayout>
   );
 };
+
+const Info = ({ label, value }: { label: string; value: string | number }) => (
+  <div><p className="text-sm text-muted-foreground">{label}</p><p className="font-medium">{value}</p></div>
+);
 
 export default VehicleDetail;
