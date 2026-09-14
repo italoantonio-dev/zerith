@@ -47,7 +47,7 @@ const Login = () => {
           <h1 className="text-4xl font-extrabold mb-2">
             <span style={{ color: '#FFDD00' }}>Z</span><span className="text-[#F5F5F5]">erith</span>
           </h1>
-          <p className="text-lg text-[#F5F5F5] opacity-80">On Electric Cars</p>
+          <p className="text-lg text-[#F5F5F5] opacity-80">Inteligência operacional para frotas</p>
         </div>
         <Card className="bg-white/10 backdrop-blur-md border-none rounded-2xl shadow-2xl">
           <CardHeader className="space-y-1">
@@ -115,12 +115,6 @@ const Login = () => {
                   )}
                 />
                 
-                <div className="text-sm text-muted-foreground">
-                  <p className="text-[#F5F5F5] opacity-80">Credenciais de demonstração:</p>
-                  <p className="text-[#F5F5F5] opacity-80">Email: rafael@velox.com</p>
-                  <p className="text-[#F5F5F5] opacity-80">Senha: admin123</p>
-                </div>
-                
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   <LogIn className="mr-2 h-4 w-4" />
                   {isLoading ? "Entrando..." : "Entrar"}
@@ -160,7 +154,7 @@ const Login = () => {
         </Card>
         
         <div className="mt-6 text-center text-sm text-[#F5F5F5] opacity-60">
-          <p>&copy; 2025 Velox Motors - Zerith AI</p>
+          <p>&copy; 2026 Zerith</p>
         </div>
       </div>
     </div>
