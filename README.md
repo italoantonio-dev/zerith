@@ -13,7 +13,7 @@
 
 A ZERITH é uma startup de telemática preditiva para gestão de frotas leves, desenvolvida para antecipar falhas mecânicas, reduzir custos operacionais e centralizar o monitoramento da frota em um único painel.
 
-Este repositório contém o **frontend do dashboard** — interface web responsiva com visualização de dados de sensores, alertas de manutenção e relatórios gerenciais.
+Este repositório contém o **MVP integrado**: dashboard React, API Spring Boot, PostgreSQL e firmware de demonstração para ESP32.
 
 **Contexto:** Projeto aprovado na Etapa 6 do programa Brasil Inovador (Assistec Inova, 2026). Arquitetura completa: ESP32 + OBD-II (hardware), Spring Boot (backend), Python FastAPI (ML), Oracle Cloud (infraestrutura).
 
@@ -39,7 +39,10 @@ Este repositório contém o **frontend do dashboard** — interface web responsi
 | Gráficos | Recharts |
 | Formulários | React Hook Form + Zod |
 | Roteamento | React Router DOM |
-| Deploy | GitHub Pages |
+| Backend | Java 21 + Spring Boot |
+| Banco | PostgreSQL + Flyway |
+| Hardware | ESP32 (firmware de demonstração) |
+| Deploy do frontend | GitHub Pages |
 
 ---
 
@@ -60,6 +63,12 @@ npm run dev
 ```
 
 Acesse `http://localhost:5173`
+
+---
+
+## Executar o MVP completo
+
+Consulte [backend/README.md](backend/README.md) para iniciar PostgreSQL, API, dashboard e simular uma leitura do ESP32.
 
 ---
 
@@ -93,9 +102,11 @@ ESP32 + OBD-II  →  MQTT/Mosquitto  →  Spring Boot API
 - [x] Dashboard base com autenticação
 - [x] Gráficos de sensores em tempo real
 - [x] Sistema de alertas
-- [ ] Integração com backend Spring Boot
+- [x] Integração inicial com backend Spring Boot
 - [ ] Conexão com pipeline ML (FastAPI)
 - [ ] App mobile (React Native)
+- [x] Firmware ESP32 simulador para o MVP
+- [ ] Adaptador OBD-II e validação em veículo
 - [ ] Hardware ESP32 + OBD-II em produção
 
 ---

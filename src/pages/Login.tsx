@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useAuth } from "@/context/AuthContext";
 
 const loginSchema = z.object({
-  email: z.string().email({ message: "Email inválido" }),
+  email: z.string().trim().toLowerCase().email({ message: "Email inválido" }),
   password: z.string().min(6, { message: "A senha deve ter pelo menos 6 caracteres" }),
 });
 
@@ -47,7 +47,7 @@ const Login = () => {
           <h1 className="text-4xl font-extrabold mb-2">
             <span style={{ color: '#FFDD00' }}>Z</span><span className="text-[#F5F5F5]">erith</span>
           </h1>
-          <p className="text-lg text-[#F5F5F5] opacity-80">On Electric Cars</p>
+          <p className="text-lg text-[#F5F5F5] opacity-80">Inteligência operacional para frotas</p>
         </div>
         <Card className="bg-white/10 backdrop-blur-md border-none rounded-2xl shadow-2xl">
           <CardHeader className="space-y-1">
@@ -69,8 +69,11 @@ const Login = () => {
                       <div className="relative">
                         <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                         <FormControl>
-                          <Input 
-                            placeholder="seu.email@exemplo.com" 
+                          <Input
+                            type="email"
+                            inputMode="email"
+                            autoComplete="email"
+                            placeholder="seu.email@exemplo.com"
                             className="pl-10" 
                             {...field} 
                           />
@@ -92,6 +95,7 @@ const Login = () => {
                         <FormControl>
                           <Input
                             type={showPassword ? "text" : "password"}
+                            autoComplete="current-password"
                             className="pl-10 pr-10"
                             style={{ paddingRight: 44 }}
                             {...field}
@@ -114,12 +118,6 @@ const Login = () => {
                     </FormItem>
                   )}
                 />
-                
-                <div className="text-sm text-muted-foreground">
-                  <p className="text-[#F5F5F5] opacity-80">Credenciais de demonstração:</p>
-                  <p className="text-[#F5F5F5] opacity-80">Email: rafael@velox.com</p>
-                  <p className="text-[#F5F5F5] opacity-80">Senha: admin123</p>
-                </div>
                 
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   <LogIn className="mr-2 h-4 w-4" />
@@ -160,7 +158,7 @@ const Login = () => {
         </Card>
         
         <div className="mt-6 text-center text-sm text-[#F5F5F5] opacity-60">
-          <p>&copy; 2025 Velox Motors - Zerith AI</p>
+          <p>&copy; 2026 Zerith</p>
         </div>
       </div>
     </div>

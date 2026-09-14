@@ -1,129 +1,115 @@
-import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/context/AuthContext";
-import { 
-  LayoutDashboard, 
-  Car, 
-  Bell, 
-  Calendar, 
-  Settings, 
-  LogOut
+import { NavLink } from "react-router-dom";
+import {
+  Activity,
+  Building2,
+  Car,
+  CircleDollarSign,
+  Gauge,
+  LogOut,
+  Sun,
+  Wrench,
 } from "lucide-react";
+
+import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   collapsed: boolean;
 }
 
-export function Sidebar({ collapsed }: SidebarProps) {
-  const location = useLocation();
-  const { logout } = useAuth();
+const menuItems = [
+  { id: "dashboard", label: "Visão Global", icon: Gauge, path: "/dashboard" },
+  { id: "vehicles", label: "Frota Leve", icon: Car, path: "/veiculos" },
+  { id: "models", label: "Modelos Preditivos", icon: Activity, path: "/alertas", hasAlert: true },
+  { id: "maintenance", label: "Plano de Manutenção", icon: Wrench, path: "/historico" },
+  { id: "finance", label: "Gestão Financeira", icon: CircleDollarSign, path: "/configuracoes" },
+];
 
-  const menuItems = [
-    {
-      id: "dashboard",
-      label: "Visão Geral",
-      icon: LayoutDashboard,
-      path: "/dashboard"
-    },
-    {
-      id: "vehicles",
-      label: "Veículos Monitorados",
-      icon: Car,
-      path: "/veiculos"
-    },
-    {
-      id: "alerts",
-      label: "Alertas Ativos",
-      icon: Bell,
-      path: "/alertas"
-    },
-    {
-      id: "maintenance",
-      label: "Histórico de Manutenção",
-      icon: Calendar,
-      path: "/historico"
-    },
-    {
-      id: "settings",
-      label: "Configurações",
-      icon: Settings,
-      path: "/configuracoes"
-    },
-  ];
+export function Sidebar({ collapsed }: SidebarProps) {
+  const { user, logout } = useAuth();
 
   return (
     <aside
       className={cn(
-        "flex flex-col transition-all duration-300 shadow-xl",
-        collapsed ? "w-16" : "w-64",
-        "bg-gradient-to-b from-[#2A0D5Bcc] via-[#4A148Ccc] to-[#6A1B9Aee] backdrop-blur-md border-r border-white/10"
+        "hidden shrink-0 flex-col border-r border-slate-200/70 bg-[#f4f6f9] transition-[width] duration-300 md:flex",
+        collapsed ? "w-[88px]" : "w-[270px]"
       )}
     >
-      <div className="p-6 border-b border-white/10 flex items-center justify-between">
-        {!collapsed && (
-          <span className="font-extrabold text-xl tracking-widest">
-            <span style={{ color: '#FFDD00' }}>Z</span><span className="text-[#F5F5F5]">ehit AI</span>
-          </span>
-        )}
-        {collapsed && <span className="font-bold text-lg text-white mx-auto">ZT</span>}
-      </div>
-
-      <div className="flex-1 py-6 overflow-y-auto scrollbar-hidden">
-        <nav className="px-2 space-y-2">
-          {menuItems.map((item) => (
-            <NavLink
-              key={item.id}
-              to={item.path}
-              className={({ isActive }) => cn(
-                "flex items-center w-full px-3 py-3 text-base rounded-xl transition-colors font-medium gap-3",
+      <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-7 lg:px-4">
+        {menuItems.map((item) => (
+          <NavLink
+            key={item.id}
+            to={item.path}
+            title={collapsed ? item.label : undefined}
+            className={({ isActive }) =>
+              cn(
+                "group relative flex h-12 items-center rounded-2xl text-sm font-medium transition-colors",
+                collapsed ? "justify-center px-0" : "gap-3 px-4",
                 isActive
-                  ? "bg-white/10 text-white shadow-md"
-                  : "text-[#F5F5F5] hover:bg-white/5 hover:text-[#FFDD00]"
-              )}
-            >
-              <item.icon
-                className={cn("flex-shrink-0", collapsed ? "mx-auto" : "")}
-                size={collapsed ? 28 : 24}
-                color="white"
-              />
-              {!collapsed && <span>{item.label}</span>}
-            </NavLink>
-          ))}
-          
-          <button
-            onClick={logout}
-            className="flex items-center w-full px-3 py-3 text-base rounded-xl transition-colors text-[#F5F5F5] hover:bg-white/5 mt-8 gap-3"
+                  ? "bg-[#e7ebf0] text-[#111827]"
+                  : "text-slate-500 hover:bg-white hover:text-slate-900"
+              )
+            }
           >
-            <LogOut
-              className={cn("flex-shrink-0", collapsed ? "mx-auto" : "")}
-              size={collapsed ? 28 : 24}
-              color="white"
-            />
-            {!collapsed && <span>Sair do Sistema</span>}
-          </button>
-        </nav>
-      </div>
+            <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.7} />
+            {!collapsed && <span>{item.label}</span>}
+            {item.hasAlert && (
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full bg-[#ff525a]",
+                  collapsed ? "absolute right-4 top-3" : "ml-auto"
+                )}
+              />
+            )}
+          </NavLink>
+        ))}
 
-      <div className="p-6 border-t border-white/10 flex items-center">
-        <div className="flex items-center space-x-3 w-full justify-center">
+        <div className="mx-2 my-5 border-t border-slate-200" />
+
+        {!collapsed && (
+          <div className="px-3 pb-2">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">Filiais</p>
+          </div>
+        )}
+
+        <div className={cn("space-y-1 text-xs text-slate-500", collapsed && "flex flex-col items-center")}>
+          <div className={cn("flex items-center", collapsed ? "justify-center py-2" : "gap-3 px-4 py-2")}>
+            {collapsed ? <Building2 className="h-4 w-4" /> : <><span className="h-1.5 w-1.5 rounded-full bg-slate-300" /><span>{user?.company ?? "Matriz"}</span></>}
+          </div>
           {!collapsed && (
-            <>
-              <div className="w-10 h-10 bg-[#4A148C] rounded-full flex items-center justify-center ring-2 ring-[#FFDD00]">
-                <span className="text-white font-bold text-lg">RL</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm text-[#F5F5F5] font-semibold">Eng. Rafael Lima</span>
-                <span className="text-xs text-[#F5F5F5] opacity-70">Velox Motors</span>
-              </div>
-            </>
-          )}
-          {collapsed && (
-            <div className="w-10 h-10 bg-[#4A148C] rounded-full flex items-center justify-center ring-2 ring-[#FFDD00] mx-auto">
-              <span className="text-white font-bold text-lg">RL</span>
+            <div className="flex items-center gap-3 px-4 py-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+              <span>Operação principal</span>
             </div>
           )}
         </div>
+      </nav>
+
+      <div className="space-y-2 px-3 pb-5">
+        <button
+          type="button"
+          className={cn(
+            "flex h-12 w-full items-center rounded-2xl border border-slate-200 bg-white text-sm font-medium text-slate-600 shadow-sm transition-colors hover:text-slate-900",
+            collapsed ? "justify-center" : "gap-3 px-4"
+          )}
+          title={collapsed ? "Modo claro" : undefined}
+        >
+          <Sun className="h-[18px] w-[18px]" strokeWidth={1.7} />
+          {!collapsed && <span>Modo Claro</span>}
+        </button>
+
+        <button
+          type="button"
+          onClick={logout}
+          className={cn(
+            "flex h-10 w-full items-center rounded-xl text-xs font-medium text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600",
+            collapsed ? "justify-center" : "gap-3 px-4"
+          )}
+          title={collapsed ? "Sair" : undefined}
+        >
+          <LogOut className="h-4 w-4" />
+          {!collapsed && <span>Sair</span>}
+        </button>
       </div>
     </aside>
   );
