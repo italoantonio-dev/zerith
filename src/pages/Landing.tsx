@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
+const assetUrl = (filename: string) => import.meta.env.BASE_URL + filename;
+
 const Landing = () => {
   const navigate = useNavigate();
 
@@ -9,7 +11,7 @@ const Landing = () => {
       {/* Header minimalista fixo */}
       <header className="w-full fixed top-0 left-0 z-30 bg-transparent flex justify-between items-center px-12 py-6">
         <div className="flex items-center gap-3">
-          <img src={process.env.PUBLIC_URL + '/KY ZENITH.png'} alt="Logo Zerith" className="h-10 w-10 object-contain" />
+          <img src={assetUrl("KY ZENITH.png")} alt="Logo Zerith" className="h-10 w-10 object-contain" />
           <span className="text-2xl font-bold tracking-widest text-white"><span style={{ color: '#FFDD00' }}>Z</span>ERITH</span>
         </div>
         <Button onClick={() => navigate("/login")}
@@ -22,7 +24,7 @@ const Landing = () => {
       <section
         className="relative flex flex-col items-center justify-center min-h-screen pt-32 pb-16 text-center overflow-hidden"
         style={{
-          backgroundImage: `linear-gradient(rgba(42,13,91,0.7), rgba(74,20,140,0.7)), url('/ai-car-dashboard.jpg')`,
+          backgroundImage: "linear-gradient(rgba(42,13,91,0.7), rgba(74,20,140,0.7)), url('" + assetUrl("ai-car-dashboard.jpg") + "')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -60,7 +62,7 @@ const Landing = () => {
           className="rounded-2xl shadow-2xl border-4 border-[#4A148C] max-w-3xl w-full bg-black"
           style={{ outline: 'none' }}
         >
-          <source src={process.env.PUBLIC_URL + '/comercial.mp4'} type="video/mp4" />
+          <source src={assetUrl("comercial.mp4")} type="video/mp4" />
           Seu navegador não suporta vídeo.
         </video>
       </div>
@@ -89,7 +91,7 @@ const Landing = () => {
       {/* Como Funciona */}
       <section className="py-24 bg-gradient-to-r from-[#2A0D5B]/80 to-[#4A148C]/80">
         <div className="max-w-5xl mx-auto px-8 grid md:grid-cols-2 gap-16 items-center">
-          <img src={process.env.PUBLIC_URL + '/Logo Zenith Final.png'} alt="Dashboard" className="rounded-2xl shadow-2xl border-4 border-[#4A148C] object-cover w-full" />
+          <img src={assetUrl("Logo Zenith Final.png")} alt="Dashboard" className="rounded-2xl shadow-2xl border-4 border-[#4A148C] object-cover w-full" />
           <div className="space-y-8">
             <h2 className="text-4xl font-bold text-white mb-4">Como funciona?</h2>
             <ul className="text-white/90 text-xl space-y-4 list-disc list-inside">
@@ -131,7 +133,7 @@ const Landing = () => {
       {/* Footer minimalista */}
       <footer className="py-10 text-center bg-[#1A1333] border-t border-white/10 mt-auto">
         <div className="flex flex-col md:flex-row justify-between items-center max-w-6xl mx-auto px-8 gap-4">
-          <span className="text-lg text-white">&copy; 2025 Zerith AI - Todos os direitos reservados</span>
+          <span className="text-lg text-white">&copy; 2026 Zerith AI - Todos os direitos reservados</span>
           <div className="flex gap-6">
             <a href="#" className="text-white hover:text-[#FFDD00] transition">Política de Privacidade</a>
             <a href="#" className="text-white hover:text-[#FFDD00] transition">Termos de Uso</a>
