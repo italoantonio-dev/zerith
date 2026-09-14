@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const response = await zerithApi.login(email, password);
+      const response = await zerithApi.login(email.trim().toLowerCase(), password);
       setUser(response.user);
       localStorage.setItem(USER_KEY, JSON.stringify(response.user));
       toast({
