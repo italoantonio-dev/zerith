@@ -1,121 +1,87 @@
-
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import {
+  clearAccessToken,
+  getAccessToken,
+  zerithApi,
+  type ZerithUser,
+} from "@/lib/api";
 
-// Tipo de usuário
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  company: string;
-}
-
-// Interface do contexto de autenticação
 interface AuthContextType {
-  user: User | null;
+  user: ZerithUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
-// Dados simulados do usuário
-const MOCK_USER: User = {
-  id: "1",
-  name: "Eng. Rafael Lima",
-  email: "rafael@velox.com",
-  role: "Engenheiro Chefe",
-  company: "Velox Motors"
-};
-
-// Credenciais simuladas
-const MOCK_CREDENTIALS = {
-  email: "rafael@velox.com",
-  password: "admin123"
-};
-
-// Criar o contexto
+const USER_KEY = "zerith.user";
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Hook personalizado para usar o contexto
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
-  }
+  if (!context) throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   return context;
 };
 
-// Provider do contexto
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<ZerithUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Verificar se o usuário está armazenado no localStorage ao iniciar
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const storedUser = localStorage.getItem(USER_KEY);
+    if (storedUser && getAccessToken()) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem(USER_KEY);
+        clearAccessToken();
+      }
     }
     setIsLoading(false);
   }, []);
 
-  // Função de login simulada
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
-    // Simular delay de rede
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    if (email === MOCK_CREDENTIALS.email && password === MOCK_CREDENTIALS.password) {
-      setUser(MOCK_USER);
-      localStorage.setItem("user", JSON.stringify(MOCK_USER));
-      setIsLoading(false);
-      
+    try {
+      const response = await zerithApi.login(email, password);
+      setUser(response.user);
+      localStorage.setItem(USER_KEY, JSON.stringify(response.user));
       toast({
         title: "Login bem-sucedido",
-        description: `Bem-vindo, ${MOCK_USER.name}!`,
+        description: "Bem-vindo, " + response.user.name + "!",
       });
-      
       return true;
-    } else {
-      setIsLoading(false);
-      
+    } catch (error) {
       toast({
-        title: "Erro de autenticação",
-        description: "Email ou senha incorretos.",
+        title: "Não foi possível entrar",
+        description: error instanceof Error ? error.message : "Verifique a API e tente novamente.",
         variant: "destructive",
       });
-      
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Função de logout
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("user");
+    localStorage.removeItem(USER_KEY);
+    clearAccessToken();
     navigate("/login");
-    
-    toast({
-      title: "Logout realizado",
-      description: "Você foi desconectado com sucesso.",
-    });
+    toast({ title: "Logout realizado", description: "Você foi desconectado com sucesso." });
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
-        logout
-      }}
-    >
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated: Boolean(user && getAccessToken()),
+      isLoading,
+      login,
+      logout,
+    }}>
       {children}
     </AuthContext.Provider>
   );
