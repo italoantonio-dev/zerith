@@ -46,6 +46,9 @@ public class TelemetryController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Dispositivo não autorizado");
         }
 
+        validateCoordinates(request);
+        validateDataOrigin(request.dataOrigin());
+
         Integer existing = jdbc.queryForObject(
             "select count(*) from telemetry_readings where device_id = ? and sequence_number = ?",
             Integer.class, device.deviceId(), request.sequence());
@@ -59,12 +62,12 @@ public class TelemetryController {
                 insert into telemetry_readings(
                     id, tenant_id, vehicle_id, device_id, sequence_number, engine_temperature_c,
                     battery_voltage_v, vibration_g, rpm, speed_kmh, latitude, longitude,
-                    odometer_km, dtc_codes, captured_at
-                ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    odometer_km, dtc_codes, captured_at, data_origin
+                ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """, readingId, device.tenantId(), device.vehicleId(), device.deviceId(), request.sequence(),
                 request.engineTemperatureC(), request.batteryVoltageV(), request.vibrationG(), request.rpm(),
                 request.speedKmh(), request.latitude(), request.longitude(), request.odometerKm(),
-                request.dtcCodes() == null ? null : String.join(",", request.dtcCodes()), request.capturedAt());
+                request.dtcCodes() == null ? null : String.join(",", request.dtcCodes()), request.capturedAt(), request.dataOrigin());
         } catch (DuplicateKeyException duplicate) {
             return new IngestResponse(true, true, null, false, device.vehicleCode());
         }
@@ -128,6 +131,20 @@ public class TelemetryController {
     private static boolean lowerThan(BigDecimal value, String limit) {
         return value != null && value.compareTo(new BigDecimal(limit)) < 0;
     }
+    private static void validateCoordinates(TelemetryRequest request) {
+        if ((request.latitude() == null) != (request.longitude() == null)
+            || (request.latitude() != null && (request.latitude().compareTo(new BigDecimal("-90")) < 0
+                || request.latitude().compareTo(new BigDecimal("90")) > 0
+                || request.longitude().compareTo(new BigDecimal("-180")) < 0
+                || request.longitude().compareTo(new BigDecimal("180")) > 0))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Coordenadas inválidas");
+        }
+    }
+    private static void validateDataOrigin(String dataOrigin) {
+        if (dataOrigin != null && !dataOrigin.equals("REAL") && !dataOrigin.equals("DEMONSTRATION")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Origem de dado inválida");
+        }
+    }
     private static String sha256(String value) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
@@ -141,7 +158,7 @@ public class TelemetryController {
         @NotBlank String deviceId, @PositiveOrZero long sequence, @NotNull OffsetDateTime capturedAt,
         BigDecimal engineTemperatureC, BigDecimal batteryVoltageV, BigDecimal vibrationG,
         Integer rpm, BigDecimal speedKmh, BigDecimal latitude, BigDecimal longitude,
-        BigDecimal odometerKm, List<String> dtcCodes
+        BigDecimal odometerKm, List<String> dtcCodes, String dataOrigin
     ) {}
     public record IngestResponse(boolean accepted, boolean duplicate, String readingId,
                                  boolean alertGenerated, String vehicleId) {}

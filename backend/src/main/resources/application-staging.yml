@@ -1,0 +1,12 @@
+spring:
+  flyway:
+    clean-disabled: true
+    validate-on-migrate: true
+
+server:
+  forward-headers-strategy: framework
+
+management:
+  endpoint:
+    health:
+      show-details: never

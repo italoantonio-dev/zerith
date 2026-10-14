@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -15,6 +16,7 @@ import java.util.HexFormat;
 import java.util.UUID;
 
 @Component
+@Order(1)
 @ConditionalOnProperty(name = "zerith.seed.enabled", havingValue = "true")
 public class DemoDataInitializer implements ApplicationRunner {
     private static final UUID TENANT = UUID.fromString("10000000-0000-0000-0000-000000000001");

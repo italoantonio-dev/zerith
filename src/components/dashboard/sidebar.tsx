@@ -1,29 +1,16 @@
-import { NavLink } from "react-router-dom";
 import {
-  Activity,
   Building2,
-  Car,
-  CircleDollarSign,
-  Gauge,
   LogOut,
   Sun,
-  Wrench,
 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
+import { NavigationMenu } from "@/components/navigation/NavigationMenu";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   collapsed: boolean;
 }
-
-const menuItems = [
-  { id: "dashboard", label: "Visão Global", icon: Gauge, path: "/dashboard" },
-  { id: "vehicles", label: "Frota Leve", icon: Car, path: "/veiculos" },
-  { id: "models", label: "Modelos Preditivos", icon: Activity, path: "/alertas", hasAlert: true },
-  { id: "maintenance", label: "Plano de Manutenção", icon: Wrench, path: "/historico" },
-  { id: "finance", label: "Gestão Financeira", icon: CircleDollarSign, path: "/configuracoes" },
-];
 
 export function Sidebar({ collapsed }: SidebarProps) {
   const { user, logout } = useAuth();
@@ -35,34 +22,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
         collapsed ? "w-[88px]" : "w-[270px]"
       )}
     >
-      <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-7 lg:px-4">
-        {menuItems.map((item) => (
-          <NavLink
-            key={item.id}
-            to={item.path}
-            title={collapsed ? item.label : undefined}
-            className={({ isActive }) =>
-              cn(
-                "group relative flex h-12 items-center rounded-2xl text-sm font-medium transition-colors",
-                collapsed ? "justify-center px-0" : "gap-3 px-4",
-                isActive
-                  ? "bg-[#e7ebf0] text-[#111827]"
-                  : "text-slate-500 hover:bg-white hover:text-slate-900"
-              )
-            }
-          >
-            <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.7} />
-            {!collapsed && <span>{item.label}</span>}
-            {item.hasAlert && (
-              <span
-                className={cn(
-                  "h-1.5 w-1.5 rounded-full bg-[#ff525a]",
-                  collapsed ? "absolute right-4 top-3" : "ml-auto"
-                )}
-              />
-            )}
-          </NavLink>
-        ))}
+      <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-5 lg:px-4">
+        <NavigationMenu collapsed={collapsed} />
 
         <div className="mx-2 my-5 border-t border-slate-200" />
 
@@ -83,7 +44,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
             </div>
           )}
         </div>
-      </nav>
+      </div>
 
       <div className="space-y-2 px-3 pb-5">
         <button

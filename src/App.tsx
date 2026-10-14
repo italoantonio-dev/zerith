@@ -14,10 +14,11 @@ import Dashboard from "./pages/Dashboard";
 import Vehicles from "./pages/Vehicles";
 import VehicleDetail from "./pages/VehicleDetail";
 import Alerts from "./pages/Alerts";
-import Maintenance from "./pages/Maintenance";
-import Settings from "./pages/Settings";
+import Tracking from "./pages/Tracking";
+import { DevelopmentModulePage, ReportsCatalogPage } from "./pages/DevelopmentModulePage";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
+import { developmentModules } from "./config/navigation";
 
 const queryClient = new QueryClient();
 
@@ -40,9 +41,18 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/veiculos" element={<ProtectedRoute><Vehicles /></ProtectedRoute>} />
             <Route path="/veiculo/:id" element={<ProtectedRoute><VehicleDetail /></ProtectedRoute>} />
+            <Route path="/rastreamento" element={<ProtectedRoute><Tracking /></ProtectedRoute>} />
             <Route path="/alertas" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
-            <Route path="/historico" element={<ProtectedRoute><Maintenance /></ProtectedRoute>} />
-            <Route path="/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/relatorios" element={<ProtectedRoute><ReportsCatalogPage /></ProtectedRoute>} />
+            {developmentModules
+              .filter((module) => module.path !== "/relatorios")
+              .map((module) => (
+                <Route
+                  key={module.id}
+                  path={module.path}
+                  element={<ProtectedRoute><DevelopmentModulePage module={module} /></ProtectedRoute>}
+                />
+              ))}
 
             {/* Página 404 */}
             <Route path="*" element={<NotFound />} />

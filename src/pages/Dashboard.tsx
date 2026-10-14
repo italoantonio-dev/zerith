@@ -15,19 +15,11 @@ import {
 
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { useAuth } from "@/context/AuthContext";
+import { dashboardDataOriginNotice, dashboardFilters, type DashboardFilter } from "@/pages/dashboard-presentation";
 import { cn } from "@/lib/utils";
 import { Alert, Vehicle, zerithApi } from "@/lib/api";
 
-type DashboardFilter = "todos" | "alertas" | "performance" | "sensores" | "manutencao";
 type DirectoryTab = "route" | "available";
-
-const filters: Array<{ id: DashboardFilter; label: string }> = [
-  { id: "todos", label: "Todos" },
-  { id: "alertas", label: "Alertas IA" },
-  { id: "performance", label: "Performance" },
-  { id: "sensores", label: "Sensores" },
-  { id: "manutencao", label: "Manutenção" },
-];
 
 const formatDate = (value: string | null) =>
   value
@@ -126,10 +118,11 @@ const Dashboard = () => {
                 <p className="mt-1 text-xs text-slate-400">
                   {user?.company} · atualizado em {formatDate(data.lastUpdate)}
                 </p>
+                <p className="mt-1 text-xs leading-5 text-slate-400">{dashboardDataOriginNotice}</p>
               </div>
               <span className="hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold text-emerald-600 sm:inline-flex">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Dados ao vivo
+                Dados da API
               </span>
             </div>
 
@@ -157,7 +150,7 @@ const Dashboard = () => {
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hidden">
             <Filter className="mr-1 h-4 w-4 shrink-0 text-slate-400" />
-            {filters.map((item) => (
+            {dashboardFilters.map((item) => (
               <button
                 key={item.id}
                 type="button"

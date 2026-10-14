@@ -1,3 +1,5 @@
+import type { PositionPageResponse, TrackingPageResponse } from "./tracking";
+
 const API_BASE_URL = (import.meta.env.VITE_API_URL ?? "http://localhost:8081/api/v1").replace(/\/$/, "");
 
 const TOKEN_KEY = "zerith.accessToken";
@@ -109,4 +111,11 @@ export const zerithApi = {
       speedKmh: number | null;
       odometerKm: number | null;
     }>>("/vehicles/" + encodeURIComponent(vehicleId) + "/telemetry?limit=" + limit),
+  trackingVehicles: (limit = 100, cursor?: string) =>
+    apiFetch<TrackingPageResponse>("/tracking/vehicles?limit=" + limit + (cursor ? "&cursor=" + encodeURIComponent(cursor) : "")),
+  vehiclePositions: (vehicleCode: string, from: string, to: string, limit = 500, cursor?: string) =>
+    apiFetch<PositionPageResponse>(
+      "/vehicles/" + encodeURIComponent(vehicleCode) + "/positions?from=" + encodeURIComponent(from)
+      + "&to=" + encodeURIComponent(to) + "&limit=" + limit + (cursor ? "&cursor=" + encodeURIComponent(cursor) : ""),
+    ),
 };

@@ -6,6 +6,6 @@ spring:
 
 zerith:
   jwt:
-    secret: local-test-secret-with-more-than-thirty-two-characters
+    secret: ${JWT_SECRET}
   seed:
     enabled: false

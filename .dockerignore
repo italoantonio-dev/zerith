@@ -1,0 +1,18 @@
+# Secrets and developer-only environment files must never enter an image build context.
+.env
+backend/.env
+deploy/staging/staging.env
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Host/build artefacts and repository metadata are not required by either staging image.
+.git
+node_modules
+backend/target
+docs
+documentation
+coverage
+*.log
+*.tsbuildinfo

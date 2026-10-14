@@ -16,10 +16,11 @@ import {
 
 interface HeaderProps {
   onToggleSidebar: () => void;
+  onOpenMobileNavigation: () => void;
   sidebarCollapsed: boolean;
 }
 
-export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
+export function Header({ onToggleSidebar, onOpenMobileNavigation, sidebarCollapsed }: HeaderProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -45,9 +46,18 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-10 w-10 rounded-full text-slate-200 hover:bg-white/10 hover:text-white"
+          className="hidden h-10 w-10 rounded-full text-slate-200 hover:bg-white/10 hover:text-white md:inline-flex"
           onClick={onToggleSidebar}
           aria-label={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 rounded-full text-slate-200 hover:bg-white/10 hover:text-white md:hidden"
+          onClick={onOpenMobileNavigation}
+          aria-label="Abrir navegação"
         >
           <Menu className="h-5 w-5" />
         </Button>

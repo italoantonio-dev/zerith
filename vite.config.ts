@@ -4,23 +4,30 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  base: '/zehit/',
-  server: {
-    host: "::",
-    port: 8080,
-  },
-  plugins: [
-    react(),
-    mode === 'development' &&
-    componentTagger(),
-  ].filter(Boolean),
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+export default defineConfig(({ mode }) => {
+  const localApiUrl = mode === "isolated" ? "http://127.0.0.1:8091/api/v1" : undefined;
+
+  return {
+    base: '/zehit/',
+    server: {
+      host: "127.0.0.1",
+      port: 5173,
+      strictPort: true,
     },
-  },
-  build: {
-    outDir: 'docs',
-  },
-}));
+    define: localApiUrl
+      ? { "import.meta.env.VITE_API_URL": JSON.stringify(localApiUrl) }
+      : {},
+    plugins: [
+      react(),
+      mode === 'development' && componentTagger(),
+    ].filter(Boolean),
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
+    },
+    build: {
+      outDir: 'docs',
+    },
+  };
+});

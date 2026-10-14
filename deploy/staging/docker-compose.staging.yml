@@ -1,0 +1,137 @@
+name: zerith-staging
+
+services:
+  secrets-check:
+    image: alpine:3.20
+    restart: "no"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo de ambiente privado}
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET no arquivo de ambiente privado}
+      ZERITH_DEMO_PASSWORD: ${ZERITH_DEMO_PASSWORD:?Defina ZERITH_DEMO_PASSWORD no arquivo de ambiente privado}
+      ZERITH_DEVICE_KEY: ${ZERITH_DEVICE_KEY:?Defina ZERITH_DEVICE_KEY no arquivo de ambiente privado}
+    volumes:
+      - ./scripts/validate-staging-secrets.sh:/checks/validate-staging-secrets.sh:ro
+    command: ["/bin/sh", "/checks/validate-staging-secrets.sh"]
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-zerith}
+      POSTGRES_USER: ${POSTGRES_USER:-zerith}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo de ambiente privado}
+    volumes:
+      - zerith_staging_postgres:/var/lib/postgresql/data
+    depends_on:
+      secrets-check:
+        condition: service_completed_successfully
+    networks:
+      - private
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    mem_limit: 768m
+    cpus: 0.75
+    logging: &json_logging
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  api:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile.staging
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: staging
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-zerith}
+      DB_USER: ${POSTGRES_USER:-zerith}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo de ambiente privado}
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET no arquivo de ambiente privado}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-480}
+      CORS_ALLOWED_ORIGINS: https://${STAGING_DOMAIN:?Defina STAGING_DOMAIN no arquivo de ambiente privado}
+      ZERITH_SEED_ENABLED: "true"
+      ZERITH_DEMO_DATASET_ENABLED: "true"
+      ZERITH_DEMO_PASSWORD: ${ZERITH_DEMO_PASSWORD:?Defina ZERITH_DEMO_PASSWORD no arquivo de ambiente privado}
+      ZERITH_DEVICE_KEY: ${ZERITH_DEVICE_KEY:?Defina ZERITH_DEVICE_KEY no arquivo de ambiente privado}
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60 -XX:InitialRAMPercentage=25 -XX:+ExitOnOutOfMemoryError
+    depends_on:
+      secrets-check:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    networks:
+      - private
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8081/actuator/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 60s
+    mem_limit: 896m
+    cpus: 1.00
+    logging: *json_logging
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/staging/Dockerfile.web
+      args:
+        VITE_API_URL: /api/v1
+    restart: unless-stopped
+    networks:
+      - public
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/zehit/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    mem_limit: 128m
+    cpus: 0.25
+    logging: *json_logging
+
+  proxy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    environment:
+      STAGING_DOMAIN: ${STAGING_DOMAIN:?Defina STAGING_DOMAIN no arquivo de ambiente privado}
+      ACME_EMAIL: ${ACME_EMAIL:?Defina ACME_EMAIL no arquivo de ambiente privado}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - zerith_staging_caddy_data:/data
+      - zerith_staging_caddy_config:/config
+    networks:
+      - public
+      - private
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    mem_limit: 160m
+    cpus: 0.25
+    logging: *json_logging
+
+networks:
+  public:
+    driver: bridge
+  private:
+    driver: bridge
+    internal: true
+
+volumes:
+  zerith_staging_postgres:
+  zerith_staging_caddy_data:
+  zerith_staging_caddy_config:

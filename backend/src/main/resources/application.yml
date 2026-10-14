@@ -33,3 +33,5 @@ zerith:
     enabled: ${ZERITH_SEED_ENABLED:false}
     password: ${ZERITH_DEMO_PASSWORD:}
     device-key: ${ZERITH_DEVICE_KEY:}
+  demo-dataset:
+    enabled: ${ZERITH_DEMO_DATASET_ENABLED:false}
