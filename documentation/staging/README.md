@@ -4,7 +4,7 @@
 
 Este diretório prepara a publicação em uma VPS Ubuntu LTS sem iniciar Docker Desktop, acessar uma VPS, aplicar migrações ou publicar imagens. Ele preserva `docker-compose.yml`, `docker-compose.local.yml` e `docs/`.
 
-**Estado de publicação: NO-GO.** O `npm audit --omit=dev` atual retornou 6 vulnerabilidades altas e 4 moderadas. A correção disponível para parte relevante exige atualização maior de Tailwind e React Router; não foi aplicada porque alteraria dependências/lockfile fora desta tarefa. A conta de demonstração atual é única, portanto a exigência de autenticação individual para 4 membros e até 6 convidados também permanece sem mecanismo verificado de provisionamento.
+**Estado de publicação: NO-GO.** A auditoria completa de dependências ainda possui 5 ocorrências altas e 4 moderadas no grafo de desenvolvimento/build; `npm audit --omit=dev` retorna zero, mas isso não substitui a auditoria total. A correção disponível para o restante exige migração maior de Tailwind; não foi aplicada sem aprovação. A conta de demonstração atual é única, portanto a exigência de autenticação individual para 4 membros e até 6 convidados também permanece sem mecanismo verificado de provisionamento.
 
 ## Arquitetura proposta
 
@@ -28,7 +28,7 @@ API: sem porta publicada
 
 - `proxy` é o único serviço com `ports`; recebe 80/443, obtém/renova certificados via ACME e rejeita caminhos fora de `/zehit/`, `/api/*` e `/healthz`.
 - A aplicação continua sob o basename legado confirmado no código: **`/zehit/`**. Não há migração silenciosa para `/zerith/`; uma eventual correção de nome exige decisão de produto e redirecionamentos compatíveis.
-- O frontend recebe `VITE_API_URL=/api/v1` durante o build: a chamada é same-origin HTTPS. O backend também mantém CORS explicitamente limitado a `https://${STAGING_DOMAIN}` para qualquer cliente cross-origin futuro.
+- O frontend recebe apenas `VITE_API_URL=/api/v1` fixo no Dockerfile durante o build: a chamada é same-origin HTTPS. Não usar `VITE_*` para tokens, chaves privadas ou valores que não possam ser públicos; qualquer valor Vite pode ser incorporado ao bundle do navegador. O backend também mantém CORS explicitamente limitado a `https://${STAGING_DOMAIN}` para qualquer cliente cross-origin futuro.
 - `application-staging.yml` desabilita `flyway clean`, valida migrações antes de aplicá-las, respeita cabeçalhos encaminhados do proxy e não expõe detalhes do health.
 - O seed existente é explicitamente sintético: `ZERITH_SEED_ENABLED=true` e `ZERITH_DEMO_DATASET_ENABLED=true`; o dataset identifica telemetria como `DEMONSTRATION`.
 
@@ -51,12 +51,12 @@ Os limites são uma contenção inicial, não uma prova de desempenho. O monitor
 | Arquivo | Finalidade |
 |---|---|
 | `deploy/staging/docker-compose.staging.yml` | stack isolado para staging; redes, volumes, health checks, logs, recursos e restart |
-| `deploy/staging/Dockerfile.web` | build reprodutível com `npm ci` e Nginx para os assets de `/zehit/` |
+| `deploy/staging/Dockerfile.web` | build reprodutível com allowlist explícita de insumos, `npm ci` e Nginx para os assets de `/zehit/` |
 | `deploy/staging/nginx.conf` | fallback SPA e cache de assets com hash |
 | `deploy/staging/Caddyfile` | HTTPS, headers, proxy e rota de health externa |
 | `backend/Dockerfile.staging` | imagem Java 21 não-root com `curl` para health check |
 | `backend/src/main/resources/application-staging.yml` | hardening de Flyway/health e proxy headers |
-| `deploy/staging/scripts/*.sh` | backup e recuperação protegida por confirmação explícita |
+| `deploy/staging/scripts/*.sh` | backup/recuperação, validação de secrets e verificações automatizadas do contexto de build |
 | `deploy/staging/k6/staging-load.js` | carga autenticada controlada (1/4/10 VUs) |
 
 ## Variáveis
@@ -68,7 +68,7 @@ Copie `deploy/staging/.env.staging.example` para **`/opt/zerith/staging.env`** n
 | `STAGING_DOMAIN` | sim | DNS público sem protocolo; usado por Caddy e CORS |
 | `ACME_EMAIL` | sim | contato ACME, não é senha |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | sim | banco persistente; senha única de staging |
-| `JWT_SECRET` | sim | mínimo 32 bytes aleatórios; assina tokens |
+| `JWT_SECRET` | sim | Base64 de pelo menos 32 bytes aleatórios; assina tokens |
 | `JWT_EXPIRATION_MINUTES` | não | padrão 480; reduzir se a homologação exigir |
 | `ZERITH_DEMO_PASSWORD` | sim | senha exclusiva da demonstração sintética |
 | `ZERITH_DEVICE_KEY` | sim | credencial exclusiva do dispositivo sintético |
@@ -175,6 +175,29 @@ Critérios iniciais de homologação: 15 min completos por nível, erro HTTP/API
 - [ ] Carga 1/4/10 VUs por 15 min e verificação visual autenticada concluídas.
 - [ ] Tarefa 20/Docker Desktop não é pré-requisito para VPS, mas qualquer mudança pendente de Compose/local foi reconciliada e revisada.
 
+## Hardening da tarefa 23.0
+
+### Contexto Docker e configuração pública
+
+- `.dockerignore` bloqueia arquivos `.env` e `*.env` com variantes e subdiretórios, além de extensões de segredo comuns. Os templates de ambiente não são insumos necessários para nenhuma imagem staging e também ficam fora do contexto.
+- `Dockerfile.web` não usa mais `COPY . .`: recebe apenas manifest/lock, configuração Vite/TypeScript/Tailwind, `public/` e `src/`. `backend/Dockerfile.staging` já recebe somente `backend/pom.xml` e `backend/src`.
+- `deploy/staging/scripts/verify-build-context.sh` verifica a política de ignore, a allowlist dos `COPY` e que Compose não injeta valores `VITE_*`. Ele não lê valores de ambiente.
+
+### Secrets de staging
+
+- `validate-staging-secrets.sh` rejeita ausentes, placeholders, termos triviais e valores curtos para todos os secrets de staging.
+- `JWT_SECRET` deve ser Base64 válido, decodificar para ao menos 32 bytes e não pode ser repetitivo. O script nunca registra o valor recebido.
+- O controle valida formato e tamanho, não consegue provar a origem aleatória de uma string já fornecida. A geração deve ocorrer fora do repositório com `openssl rand -base64 48` ou gerenciador de secrets equivalente.
+- `test-staging-secrets.sh` cobre um caso válido gerado em memória e casos negativos sem expor valores; `verify-build-context.sh` cobre a política de contexto sem depender do daemon Docker.
+
+### Dependências
+
+- No baseline desta tarefa, `npm audit` completo retornou 10 ocorrências: 6 altas e 4 moderadas, mapeadas para 5 advisories distintos. `npm audit fix` foi executado **sem** `--force` e aplicou somente três atualizações patch compatíveis no lockfile (`brace-expansion` em duas árvores e `lovable-tagger`).
+- Após a atualização, `npm audit --omit=dev` retorna 0. A auditoria completa retorna 9 ocorrências: 5 altas e 4 moderadas, mapeadas para dois advisories restantes: `GHSA-vfj7-8cjw-p6xm` (braces, alta) e `GHSA-rj75-hqrm-r3gf` (postcss-selector-parser, moderada).
+- O grafo remanescente é de desenvolvimento/build via Tailwind 3, `@tailwindcss/typography` e `lovable-tagger`; não está presente no runtime Nginx. O impacto é negação de serviço no processamento de padrões/CSS não confiáveis durante build/CI, não uma vulnerabilidade comprovada da aplicação estática publicada.
+- Mitigações: lockfile, `npm ci`, revisão de alterações de fonte/configuração e não executar build com entradas não confiáveis. Isso não elimina o risco. A correção completa exige atualização maior para Tailwind 4 ou alteração incompatível de plugins; é vedada sem aprovação explícita.
+- Prazo de revisão/exceção: antes de qualquer push ou deploy desta release. Sem uma exceção de risco formal ou tarefa aprovada de migração, o gate de publicação permanece NO-GO.
+
 ## Auditoria realizada nesta tarefa
 
 ### Configuração e perfis
@@ -186,7 +209,7 @@ Critérios iniciais de homologação: 15 min completos por nível, erro HTTP/API
 
 ### Credenciais e Git
 
-- `.env` e `backend/.env` estão ignorados; nenhum arquivo `.env`, `.pem`, `.key`, `.p12` ou `.pfx` foi encontrado rastreado. Valores não foram lidos.
+- Arquivos de ambiente e variantes em subdiretórios são excluídos do contexto Docker; nenhum valor de ambiente foi lido. O build web recebe uma allowlist de arquivos e nenhum `VITE_*` fornecido por Compose.
 - O worktree já estava substancialmente alterado antes desta tarefa: há diferenças staged, unstaged e arquivos não rastreados, incluindo artefatos em `docs/`. Esta tarefa não os reconciliou.
 - `git diff --check` apontou whitespace em um asset JavaScript staged de `docs/`, pré-existente e fora desta alteração. É bloqueador de uma candidatura de release até regeneração/revisão.
 
@@ -199,7 +222,7 @@ Critérios iniciais de homologação: 15 min completos por nível, erro HTTP/API
 
 ### Riscos e bloqueadores conhecidos
 
-1. **NO-GO — dependências:** auditoria `npm audit --omit=dev` retornou 6 altas e 4 moderadas. Rotas relevantes: Tailwind 3.4.x → chokidar/braces/micromatch/fast-glob/postcss; `react-router-dom` 6.26.2 → React Router (<7.18.0); `source-map-js` também alto. A correção automática sugerida é major para Tailwind 4.3.3 e React Router 7.18.4. Avaliação e atualização devem ser tarefa aprovada, com testes.
+1. **NO-GO — dependências de build:** `npm audit --omit=dev` está limpo, mas a auditoria completa ainda retorna 5 altas e 4 moderadas pelas cadeias Tailwind 3/typography/lovable-tagger. O risco é limitado ao ambiente de build, mas não é zero. Corrigir requer migração maior para Tailwind 4 ou exceção formal antes de publicar.
 2. **NO-GO — participantes individuais:** seed atual cria uma única conta demo. Não foi encontrado fluxo verificado de provisionamento administrativo de 4+6 contas/tenants. Não usar a senha demo compartilhada; implementar/provar esse processo antes de convidar pessoas.
 3. **GO condicionado — Java local:** a máquina atual tem JDK 25 no PATH, mas `JAVA_HOME` aponta para JDK 8 inexistente; Maven não iniciou. A VPS usará imagem Java 21, mas `mvn verify` local não pôde ser reexecutado nesta tarefa até corrigir o ambiente local ou usar CI Java 21.
 4. **GO condicionado — Docker:** Docker Desktop segue bloqueado pela Tarefa 20; portanto Compose, build de imagens, ACME, health checks e CORS HTTPS foram preparados mas não executados. A VPS pode validar independentemente após contratação.

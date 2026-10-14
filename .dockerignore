@@ -1,7 +1,18 @@
 # Secrets and developer-only environment files must never enter an image build context.
+# Docker sends the complete non-ignored context to its daemon, so protect nested
+# variants too. Approved templates are not build inputs for either staging image.
 .env
-backend/.env
-deploy/staging/staging.env
+.env.*
+**/.env
+**/.env.*
+*.env
+*.env.*
+**/*.env
+**/*.env.*
+*.secret
+*.secrets
+**/*.secret
+**/*.secrets
 *.pem
 *.key
 *.p12

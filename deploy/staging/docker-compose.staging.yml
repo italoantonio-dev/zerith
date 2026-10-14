@@ -80,8 +80,6 @@ services:
     build:
       context: ../..
       dockerfile: deploy/staging/Dockerfile.web
-      args:
-        VITE_API_URL: /api/v1
     restart: unless-stopped
     networks:
       - public
