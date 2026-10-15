@@ -3,7 +3,10 @@ name: Zerith CI
 on:
   pull_request:
   push:
-    branches: [main, "feat/**"]
+    branches: [main, "feat/**", "release/**"]
+
+permissions:
+  contents: read
 
 jobs:
   backend:
